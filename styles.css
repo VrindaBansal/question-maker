@@ -1,0 +1,404 @@
+/* Question Maker — styles */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Times New Roman', Times, serif;
+    max-width: 850px;
+    margin: 40px auto;
+    padding: 20px;
+    line-height: 1.6;
+    background-color: #f9f9f9;
+    color: #222;
+}
+
+.app-container {
+    background-color: white;
+    padding: 40px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+header {
+    margin-bottom: 30px;
+}
+
+h1 {
+    text-align: center;
+    color: #003262;
+    font-size: 28px;
+    margin-bottom: 5px;
+}
+
+h2 {
+    text-align: center;
+    color: #003262;
+    font-size: 16px;
+    margin-top: 0;
+    font-weight: normal;
+    font-style: italic;
+}
+
+/* Views */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+/* Key bar */
+.key-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #555;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: #003262;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 0;
+}
+
+.link-button:hover {
+    color: #002244;
+}
+
+/* Dropzone */
+.dropzone {
+    border: 2px dashed #003262;
+    padding: 60px 20px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #fafafa;
+    transition: background-color 0.15s ease;
+}
+
+.dropzone:hover,
+.dropzone.dragover {
+    background-color: #e8f4f8;
+}
+
+.dropzone-title {
+    font-size: 20px;
+    color: #003262;
+    margin: 0 0 8px 0;
+    font-weight: bold;
+}
+
+.dropzone-hint {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* File list */
+.file-list {
+    margin: 20px 0;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    background-color: #f5f5f5;
+    margin-bottom: 8px;
+}
+
+.file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 12px;
+}
+
+.file-status {
+    font-size: 13px;
+    color: #666;
+}
+
+.file-status.ready {
+    color: #28a745;
+}
+
+.file-status.error {
+    color: #dc3545;
+}
+
+.file-remove {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 0 0 10px;
+}
+
+.file-remove:hover {
+    color: #dc3545;
+}
+
+/* Controls */
+.controls {
+    margin: 30px 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+}
+
+.controls label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+#lengthSlider {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Status */
+.status {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    font-size: 14px;
+}
+
+.status.error {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+}
+
+/* Quiz */
+.stats {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+}
+
+.progress-indicator {
+    text-align: center;
+    margin: 20px 0;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    font-weight: bold;
+}
+
+.question-block {
+    padding-left: 0;
+}
+
+.question {
+    margin: 20px 0;
+    padding-left: 10px;
+}
+
+.option {
+    margin: 8px 0 8px 30px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.option:hover {
+    background-color: #f5f5f5;
+}
+
+.option.selected {
+    background-color: #e8f4f8;
+    border: 1px solid #003262;
+}
+
+.option.correct {
+    background-color: #d4edda;
+    border: 1px solid #28a745;
+}
+
+.option.incorrect {
+    background-color: #f8d7da;
+    border: 1px solid #dc3545;
+}
+
+.feedback {
+    padding: 15px;
+    margin: 20px 0;
+    border: 1px solid #ddd;
+    display: none;
+}
+
+.feedback.show {
+    display: block;
+}
+
+.feedback.correct {
+    background-color: #d4edda;
+    border-color: #28a745;
+}
+
+.feedback.incorrect {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+}
+
+/* Buttons */
+.button {
+    padding: 10px 20px;
+    margin: 10px 5px 10px 0;
+    border: 1px solid #003262;
+    background-color: white;
+    cursor: pointer;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 14px;
+    color: #003262;
+}
+
+.button:hover {
+    background-color: #003262;
+    color: white;
+}
+
+.button.primary {
+    background-color: #003262;
+    color: white;
+}
+
+.button.primary:hover {
+    background-color: #002244;
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.button:disabled:hover {
+    background-color: white;
+    color: #003262;
+}
+
+.button.primary:disabled:hover {
+    background-color: #003262;
+    color: white;
+}
+
+.button.flag {
+    border-color: #b8860b;
+    color: #b8860b;
+}
+
+.button.flag:hover {
+    background-color: #b8860b;
+    color: white;
+}
+
+.button.flag.active {
+    background-color: #b8860b;
+    color: white;
+}
+
+.button-group {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.bottom-controls {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+/* Completion */
+.completion-message {
+    background-color: #d4edda;
+    border: 2px solid #28a745;
+    padding: 30px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.completion-message h3 {
+    color: #28a745;
+    margin-bottom: 15px;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: #003262;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 14px;
+    border: 1px solid #999;
+    margin: 10px 0;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.hint {
+    font-size: 13px;
+    color: #666;
+}
+
+.hint.small {
+    font-size: 12px;
+    margin-top: 15px;
+    margin-bottom: 0;
+}
+
+.hint a {
+    color: #003262;
+}
