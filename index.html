@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Maker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Question Maker</h1>
+            <h2>Upload PDFs. Generate a quiz. Study.</h2>
+        </header>
+
+        <!-- Upload View -->
+        <div class="view active" id="uploadView">
+            <div class="dropzone" id="dropzone">
+                <p class="dropzone-title">Drop PDFs here</p>
+                <p class="dropzone-hint">or click to choose files</p>
+                <input type="file" id="fileInput" accept="application/pdf" multiple hidden>
+            </div>
+
+            <div class="file-list" id="fileList"></div>
+
+            <div class="controls" id="controls" hidden>
+                <label for="lengthSlider">
+                    Quiz length: <strong id="lengthValue">10</strong> questions
+                </label>
+                <input type="range" id="lengthSlider" min="10" max="50" step="5" value="10">
+
+                <button class="button primary" id="generateBtn" disabled>
+                    Generate Quiz
+                </button>
+            </div>
+
+            <div class="status" id="status" hidden></div>
+        </div>
+
+        <!-- Quiz View -->
+        <div class="view" id="quizView">
+            <div class="stats">
+                <div><strong>Answered:</strong> <span id="totalAnswered">0</span></div>
+                <div><strong>Correct:</strong> <span id="correctCount">0</span></div>
+                <div><strong>Accuracy:</strong> <span id="accuracy">0%</span></div>
+            </div>
+
+            <div class="progress-indicator">
+                Question <span id="qProgress">1</span> of <span id="qTotal">10</span>
+            </div>
+
+            <div class="question-block">
+                <div class="question">
+                    <strong><span id="qNumber">1</span>. <span id="qText"></span></strong>
+                    <div id="qOptions"></div>
+                </div>
+
+                <div class="feedback" id="feedback"></div>
+
+                <div class="button-group">
+                    <button class="button" id="prevBtn" disabled>← Previous</button>
+                    <button class="button" id="checkBtn">Check Answer</button>
+                    <button class="button" id="nextBtn">Next →</button>
+                    <button class="button flag" id="flagBtn">⚑ Flag</button>
+                </div>
+            </div>
+
+            <div class="completion-message" id="completion" hidden>
+                <h3>✓ Quiz Complete</h3>
+                <p>Final score: <span id="finalScore"></span></p>
+                <button class="button primary" id="regenerateBtn">Regenerate Quiz</button>
+                <button class="button" id="backToUploadBtn">Upload New PDFs</button>
+            </div>
+
+            <div class="bottom-controls">
+                <button class="button" id="regenerateBtnTop">Regenerate Quiz</button>
+                <button class="button" id="backToUploadBtnTop">← New PDFs</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div class="modal" id="keyModal" hidden>
+        <div class="modal-content">
+            <h3>OpenAI API Key</h3>
+            <p>This app uses your own OpenAI key to generate questions. It's stored only in your browser (localStorage) and sent directly to OpenAI — never to us.</p>
+            <p class="hint">Get one at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a></p>
+            <input type="password" id="keyInput" placeholder="sk-...">
+            <div class="modal-actions">
+                <button class="button primary" id="keySaveBtn">Save</button>
+                <button class="button" id="keyCancelBtn">Cancel</button>
+            </div>
+            <p class="hint small">A 30-question quiz costs about $0.015 on GPT-4o-mini.</p>
+        </div>
+    </div>
+
+    <script src="app.js" type="module"></script>
+</body>
+</html>
