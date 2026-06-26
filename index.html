@@ -52,43 +52,48 @@
 
         <!-- Quiz View -->
         <div class="view" id="quizView">
-            <div class="stats">
-                <div><strong>Answered:</strong> <span id="totalAnswered">0</span></div>
-                <div><strong>Correct:</strong> <span id="correctCount">0</span></div>
-                <div><strong>Accuracy:</strong> <span id="accuracy">0%</span></div>
-            </div>
+            <div class="quiz-layout">
+                <aside class="question-sidebar" id="questionSidebar" aria-label="Question navigator"></aside>
+                <div class="quiz-main">
+                    <div class="stats">
+                        <div><strong>Answered:</strong> <span id="totalAnswered">0</span></div>
+                        <div><strong>Correct:</strong> <span id="correctCount">0</span></div>
+                        <div><strong>Accuracy:</strong> <span id="accuracy">0%</span></div>
+                    </div>
 
-            <div class="progress-indicator">
-                Question <span id="qProgress">1</span> of <span id="qTotal">10</span>
-            </div>
+                    <div class="progress-indicator">
+                        Question <span id="qProgress">1</span> of <span id="qTotal">10</span>
+                    </div>
 
-            <div class="question-block">
-                <div class="question">
-                    <strong><span id="qNumber">1</span>. <span id="qText"></span></strong>
-                    <div id="qOptions"></div>
+                    <div class="question-block">
+                        <div class="question">
+                            <strong><span id="qNumber">1</span>. <span id="qText"></span></strong>
+                            <div id="qOptions"></div>
+                        </div>
+
+                        <div class="feedback" id="feedback"></div>
+
+                        <div class="button-group">
+                            <button class="button" id="prevBtn" disabled>← Previous</button>
+                            <button class="button" id="checkBtn">Check Answer</button>
+                            <button class="button" id="skipBtn">Skip</button>
+                            <button class="button" id="nextBtn">Next →</button>
+                            <button class="button flag" id="flagBtn">⚑ Flag</button>
+                        </div>
+                    </div>
+
+                    <div class="completion-message" id="completion" hidden>
+                        <h3>✓ Quiz Complete</h3>
+                        <p>Final score: <span id="finalScore"></span></p>
+                        <button class="button primary" id="regenerateBtn">Regenerate Quiz</button>
+                        <button class="button" id="backToUploadBtn">Upload New PDFs</button>
+                    </div>
+
+                    <div class="bottom-controls">
+                        <button class="button" id="regenerateBtnTop">Regenerate Quiz</button>
+                        <button class="button" id="backToUploadBtnTop">← New PDFs</button>
+                    </div>
                 </div>
-
-                <div class="feedback" id="feedback"></div>
-
-                <div class="button-group">
-                    <button class="button" id="prevBtn" disabled>← Previous</button>
-                    <button class="button" id="checkBtn">Check Answer</button>
-                    <button class="button" id="skipBtn">Skip</button>
-                    <button class="button" id="nextBtn">Next →</button>
-                    <button class="button flag" id="flagBtn">⚑ Flag</button>
-                </div>
-            </div>
-
-            <div class="completion-message" id="completion" hidden>
-                <h3>✓ Quiz Complete</h3>
-                <p>Final score: <span id="finalScore"></span></p>
-                <button class="button primary" id="regenerateBtn">Regenerate Quiz</button>
-                <button class="button" id="backToUploadBtn">Upload New PDFs</button>
-            </div>
-
-            <div class="bottom-controls">
-                <button class="button" id="regenerateBtnTop">Regenerate Quiz</button>
-                <button class="button" id="backToUploadBtnTop">← New PDFs</button>
             </div>
         </div>
     </div>

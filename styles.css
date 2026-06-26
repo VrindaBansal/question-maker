@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Times New Roman', Times, serif;
-    max-width: 850px;
+    max-width: 1000px;
     margin: 40px auto;
     padding: 20px;
     line-height: 1.6;
@@ -199,6 +199,98 @@ h2 {
 .status.error {
     background-color: #f8d7da;
     border-color: #dc3545;
+}
+
+/* Quiz layout */
+.quiz-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.question-sidebar {
+    width: 140px;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    align-content: start;
+    max-height: 75vh;
+    overflow-y: auto;
+    padding-right: 6px;
+    border-right: 1px solid #ddd;
+    padding-bottom: 4px;
+}
+
+.quiz-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-item {
+    aspect-ratio: 1;
+    border: 1px solid #ddd;
+    background-color: white;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0;
+}
+
+.sidebar-item:hover {
+    background-color: #f5f5f5;
+}
+
+.sidebar-item.current {
+    outline: 2px solid #003262;
+    outline-offset: -2px;
+    font-weight: bold;
+}
+
+.sidebar-item.correct {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.sidebar-item.incorrect {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.sidebar-item.skipped {
+    background-color: #f5f5f5;
+    color: #888;
+}
+
+.sidebar-item .flag-icon {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    font-size: 10px;
+    color: #b8860b;
+    line-height: 1;
+}
+
+@media (max-width: 720px) {
+    .quiz-layout {
+        flex-direction: column;
+    }
+    .question-sidebar {
+        width: 100%;
+        max-height: 140px;
+        grid-template-columns: repeat(8, 1fr);
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        padding-right: 0;
+        padding-bottom: 8px;
+    }
 }
 
 /* Quiz */

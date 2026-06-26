@@ -42,6 +42,7 @@ function renderCurrent() {
     document.getElementById('qProgress').textContent = quizState.idx + 1;
     document.getElementById('qTotal').textContent = quizState.questions.length;
     document.getElementById('qText').textContent = q.question;
+    renderSidebar();
 
     const optionsDiv = document.getElementById('qOptions');
     optionsDiv.innerHTML = '';
@@ -81,6 +82,54 @@ function renderCurrent() {
     flagBtn.textContent = ui.flagged ? '⚑ Flagged' : '⚑ Flag';
 
     renderStats();
+}
+
+function renderSidebar() {
+    const sidebar = document.getElementById('questionSidebar');
+    if (!sidebar) return;
+    sidebar.innerHTML = '';
+    quizState.questions.forEach((q, i) => {
+        const ui = quizState.ui[i];
+        const btn = document.createElement('button');
+        btn.className = 'sidebar-item';
+        btn.type = 'button';
+        btn.dataset.idx = String(i);
+        if (i === quizState.idx) btn.classList.add('current');
+        if (ui.checked) {
+            btn.classList.add(ui.selected === q.correct ? 'correct' : 'incorrect');
+        } else if (ui.skipped) {
+            btn.classList.add('skipped');
+        }
+        const num = document.createElement('span');
+        num.textContent = String(i + 1);
+        btn.appendChild(num);
+        if (ui.flagged) {
+            const flag = document.createElement('span');
+            flag.className = 'flag-icon';
+            flag.textContent = '⚑';
+            btn.appendChild(flag);
+        }
+        btn.title = `Question ${i + 1}` + (ui.flagged ? ' (flagged)' : '');
+        btn.onclick = () => jumpTo(i);
+        sidebar.appendChild(btn);
+    });
+}
+
+function jumpTo(idx) {
+    if (idx === quizState.idx) {
+        // If clicking the current question from completion view, drop back in.
+        ensureQuestionVisible();
+        return;
+    }
+    quizState.idx = idx;
+    ensureQuestionVisible();
+    renderCurrent();
+}
+
+function ensureQuestionVisible() {
+    document.querySelector('.question-block').style.display = 'block';
+    document.querySelector('.bottom-controls').style.display = 'block';
+    document.getElementById('completion').hidden = true;
 }
 
 function renderStats() {

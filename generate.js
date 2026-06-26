@@ -27,25 +27,36 @@ export function chunkMarkdown(markdown) {
     return chunks.map((text, i) => ({ id: `c${i}`, text }));
 }
 
-// Heuristic grounding check — the correct option's content words should mostly
-// appear somewhere in the source chunk. Catches the most blatant hallucinations.
+// Heuristic grounding check — the correct option's content words (or the
+// explanation, which we ask to cite the passage) should overlap with the
+// source chunk. Catches blatant hallucinations while allowing paraphrase.
 export function verifyGrounded(question, chunkText) {
     const correct = question.options?.[question.correct] || '';
-    const tokens = correct
+    const explanation = question.explanation || '';
+    const haystack = chunkText.toLowerCase();
+
+    const tokensOf = (s) => s
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')
         .split(/\s+/)
         .filter(t => t.length >= 4);
-    if (tokens.length === 0) return true;
-    const haystack = chunkText.toLowerCase();
-    const hits = tokens.filter(t => haystack.includes(t)).length;
-    return hits / tokens.length >= 0.5;
+
+    const correctTokens = tokensOf(correct);
+    const explanationTokens = tokensOf(explanation);
+    const combined = [...correctTokens, ...explanationTokens];
+    if (combined.length === 0) return true;
+    const hits = combined.filter(t => haystack.includes(t)).length;
+    return hits / combined.length >= 0.4;
 }
 
 const SYSTEM_PROMPT =
-    'You are an expert quiz writer. You write multiple-choice questions strictly grounded in a provided passage. ' +
-    'You output JSON only. You never invent facts beyond the passage. ' +
-    "The correct answer's key phrase must appear in the passage (verbatim or close paraphrase).";
+    'You are an expert academic test writer. You produce clear, fair, ' +
+    'unambiguous multiple-choice questions grounded strictly in a provided ' +
+    'passage. Every question you write would pass a peer review: stems are ' +
+    'complete questions, options are parallel in form and length, exactly ' +
+    'one option is correct, distractors are plausible but clearly incorrect ' +
+    'on careful reading. You output JSON only. You never invent facts beyond ' +
+    'the passage.';
 
 const DIFFICULTY_GUIDANCE = {
     easy:
@@ -80,20 +91,41 @@ ${chunk.text}
 
 ${difficultyText}
 
-REQUIREMENTS:
-- "question": well-formed, tests comprehension of the passage.
-- "options": exactly 4 mutually-exclusive choices.
-- "correct": integer 0-3, the index of the right choice.
-- "explanation": 1-2 sentences why the correct answer is right, citing the passage.
-- The correct answer's key phrase MUST appear in the passage (verbatim or as a close paraphrase).
-- Wrong options must be plausible but UNSUPPORTED by the passage. No obvious nonsense.
-- Vary forms: definitions, cause/effect, identification, sequence, comparison, numbers/dates/names.
-- Do not invent facts.
+EVERY question MUST satisfy ALL of the following rules.
 
-IMPORTANT: Aim to produce exactly ${n} questions. Most passages contain
-many testable facts — names, numbers, dates, definitions, relationships,
-sequences, locations, attributes. Find varied angles. Only return fewer
-if the passage is genuinely too sparse (e.g. one sentence).${avoid}
+STEM:
+- A complete, unambiguous question that ends in "?".
+- No fill-in-the-blank or sentence-completion stems.
+- No "all of the above" / "none of the above" / "both A and B" style options.
+- Avoid negative wording ("Which is NOT...", "EXCEPT..."). At most 1 in 10.
+- The stem itself should not telegraph the correct answer via grammar, length, or word repetition with one option.
+
+OPTIONS:
+- Exactly 4 options.
+- Options are PARALLEL in length, grammar, and specificity. A test-taker should not be able to pick the answer by looking at form alone.
+- Exactly one option is correct AND supported by the passage.
+- The other three are plausible distractors — readable as candidates by a skim reader, but clearly falsified on close reading of the passage. Do not use absurd or unrelated text as distractors.
+- No two options are paraphrases of each other. Each must be meaningfully distinct.
+- The correct answer must be supported by the passage (verbatim or a close paraphrase). Do not invent facts.
+
+EXPLANATION:
+- 1-2 sentences citing or quoting the passage to justify the correct answer.
+- Begin with phrasing like "The passage states..." or "According to the passage...".
+
+BATCH QUALITY:
+- Each question tests a DIFFERENT fact, concept, or relationship. No duplicates or near-duplicates.
+- Spread coverage across the whole passage — don't focus all questions on one paragraph.
+- Vary question forms: definitions, cause/effect, identification, comparison, sequence, application.
+
+SELF-CHECK before emitting each question:
+1. Could a reader of the passage answer this with confidence? (must be yes)
+2. Could a reader who did NOT read the passage get it right via test-taking heuristics (longest option, grammar, common sense)? (must be no)
+3. Are all 4 options parallel in form and length?
+4. Is the correct answer truly supported by the passage, not invented?
+
+If any rule fails, rewrite or skip the question.
+
+Aim to produce exactly ${n} questions. Most passages contain many testable facts — names, numbers, dates, definitions, relationships, sequences. Find varied angles. Only return fewer if the passage is genuinely too sparse.${avoid}
 
 Return JSON of the form: {"questions": [{"question": "...", "options": ["a","b","c","d"], "correct": 0, "explanation": "..."}]}`;
 }
@@ -107,7 +139,7 @@ export async function generateFromChunk(chunk, n, apiKey, previousStems = [], di
         },
         body: JSON.stringify({
             model: GEN_MODEL,
-            temperature: 0.7,
+            temperature: 0.5,
             response_format: { type: 'json_object' },
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
