@@ -47,7 +47,24 @@ const SYSTEM_PROMPT =
     'You output JSON only. You never invent facts beyond the passage. ' +
     "The correct answer's key phrase must appear in the passage (verbatim or close paraphrase).";
 
-function buildUserPrompt(chunk, n, previousStems) {
+const DIFFICULTY_GUIDANCE = {
+    easy:
+        'Target difficulty: EASY. Focus on surface-level recall — single ' +
+        'facts, names, dates, locations, basic definitions stated directly ' +
+        'in the passage. The correct answer should be clearly distinguishable ' +
+        'from the distractors.',
+    medium:
+        'Target difficulty: MEDIUM. Mix recall with comprehension. Test ' +
+        'relationships between concepts, definitions in context, how and why ' +
+        'questions. Distractors should be plausible but clearly unsupported.',
+    hard:
+        'Target difficulty: HARD. Emphasize synthesis, multi-step reasoning, ' +
+        'and nuanced distinctions. Many questions should require careful ' +
+        'reading of the passage to distinguish the correct answer from highly ' +
+        'plausible distractors. Test edge cases and subtle differences.',
+};
+
+function buildUserPrompt(chunk, n, previousStems, difficulty = 'medium') {
     let avoid = '';
     if (previousStems.length) {
         const sample = previousStems.slice(-40);
@@ -55,17 +72,19 @@ function buildUserPrompt(chunk, n, previousStems) {
             '\n\nDo NOT generate questions similar in topic or wording to any of these previously asked stems:\n' +
             sample.map(s => `- ${s}`).join('\n');
     }
+    const difficultyText = DIFFICULTY_GUIDANCE[difficulty] || DIFFICULTY_GUIDANCE.medium;
     return `Generate ${n} multiple-choice questions from this passage.
 
 PASSAGE:
 ${chunk.text}
+
+${difficultyText}
 
 REQUIREMENTS:
 - "question": well-formed, tests comprehension of the passage.
 - "options": exactly 4 mutually-exclusive choices.
 - "correct": integer 0-3, the index of the right choice.
 - "explanation": 1-2 sentences why the correct answer is right, citing the passage.
-- "tricky": boolean. About 10% of questions should be true — these should have plausible-but-wrong distractors that test careful reading. The other 90% should be straightforward.
 - The correct answer's key phrase MUST appear in the passage (verbatim or as a close paraphrase).
 - Wrong options must be plausible but UNSUPPORTED by the passage. No obvious nonsense.
 - Vary forms: definitions, cause/effect, identification, sequence, comparison, numbers/dates/names.
@@ -76,10 +95,10 @@ many testable facts — names, numbers, dates, definitions, relationships,
 sequences, locations, attributes. Find varied angles. Only return fewer
 if the passage is genuinely too sparse (e.g. one sentence).${avoid}
 
-Return JSON of the form: {"questions": [{"question": "...", "options": ["a","b","c","d"], "correct": 0, "explanation": "...", "tricky": false}]}`;
+Return JSON of the form: {"questions": [{"question": "...", "options": ["a","b","c","d"], "correct": 0, "explanation": "..."}]}`;
 }
 
-export async function generateFromChunk(chunk, n, apiKey, previousStems = []) {
+export async function generateFromChunk(chunk, n, apiKey, previousStems = [], difficulty = 'medium') {
     const res = await fetch(OPENAI_URL, {
         method: 'POST',
         headers: {
@@ -92,7 +111,7 @@ export async function generateFromChunk(chunk, n, apiKey, previousStems = []) {
             response_format: { type: 'json_object' },
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: buildUserPrompt(chunk, n, previousStems) },
+                { role: 'user', content: buildUserPrompt(chunk, n, previousStems, difficulty) },
             ],
         }),
     });
@@ -124,7 +143,6 @@ export async function generateFromChunk(chunk, n, apiKey, previousStems = []) {
             options: q.options.map(o => o.trim()),
             correct: q.correct,
             explanation: (q.explanation || '').trim(),
-            tricky: !!q.tricky,
             source_chunk_id: chunk.id,
         }));
 }
@@ -143,7 +161,7 @@ function normalizeStem(s) {
 }
 
 export async function generateQuiz(markdown, n, apiKey, options = {}) {
-    const { excludeChunkIds = [], previousStems = [], onProgress } = options;
+    const { excludeChunkIds = [], previousStems = [], onProgress, difficulty = 'medium' } = options;
     const allChunks = chunkMarkdown(markdown);
     const totalChunks = allChunks.length;
     let pool = allChunks.filter(c => !excludeChunkIds.includes(c.id));
@@ -171,6 +189,7 @@ export async function generateQuiz(markdown, n, apiKey, options = {}) {
                     ask,
                     apiKey,
                     [...previousStems, ...questions.map(q => q.question)],
+                    difficulty,
                 );
                 let added = 0;
                 for (const q of batch) {

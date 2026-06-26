@@ -11,7 +11,7 @@ export function startQuiz(questions, opts = {}) {
         questions,
         idx: 0,
         // per-question UI state: { selected, checked, flagged }
-        ui: questions.map(() => ({ selected: null, checked: false, flagged: false })),
+        ui: questions.map(() => ({ selected: null, checked: false, flagged: false, skipped: false })),
         stats: { total: 0, correct: 0 },
     };
     showQuizView();
@@ -75,6 +75,7 @@ function renderCurrent() {
 
     document.getElementById('prevBtn').disabled = quizState.idx === 0;
     document.getElementById('checkBtn').disabled = ui.checked || ui.selected === null;
+    document.getElementById('skipBtn').disabled = ui.checked;
     const flagBtn = document.getElementById('flagBtn');
     flagBtn.classList.toggle('active', ui.flagged);
     flagBtn.textContent = ui.flagged ? '⚑ Flagged' : '⚑ Flag';
@@ -109,6 +110,17 @@ function next() {
     renderCurrent();
 }
 
+function skip() {
+    // Mark as skipped (informational only) and advance. Does NOT count
+    // toward stats. If the user comes back via Previous they can still
+    // select and check this question normally.
+    const ui = quizState.ui[quizState.idx];
+    if (!ui.checked) {
+        ui.skipped = true;
+    }
+    next();
+}
+
 function prev() {
     if (quizState.idx === 0) return;
     quizState.idx -= 1;
@@ -136,6 +148,7 @@ function showCompletion() {
 export function wireQuizControls({ onRegenerate, onBackToUpload }) {
     document.getElementById('checkBtn').addEventListener('click', checkAnswer);
     document.getElementById('nextBtn').addEventListener('click', next);
+    document.getElementById('skipBtn').addEventListener('click', skip);
     document.getElementById('prevBtn').addEventListener('click', prev);
     document.getElementById('flagBtn').addEventListener('click', flag);
 

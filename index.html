@@ -34,6 +34,14 @@
                 </label>
                 <input type="range" id="lengthSlider" min="10" max="50" step="5" value="10">
 
+                <label for="difficultySlider" class="slider-label">
+                    Difficulty: <strong id="difficultyValue">Medium</strong>
+                </label>
+                <input type="range" id="difficultySlider" min="1" max="3" step="1" value="2">
+                <div class="slider-scale">
+                    <span>Easy</span><span>Medium</span><span>Hard</span>
+                </div>
+
                 <button class="button primary" id="generateBtn" disabled>
                     Generate Quiz
                 </button>
@@ -65,6 +73,7 @@
                 <div class="button-group">
                     <button class="button" id="prevBtn" disabled>← Previous</button>
                     <button class="button" id="checkBtn">Check Answer</button>
+                    <button class="button" id="skipBtn">Skip</button>
                     <button class="button" id="nextBtn">Next →</button>
                     <button class="button flag" id="flagBtn">⚑ Flag</button>
                 </div>
