@@ -1,6 +1,7 @@
 // Question Maker — main app
 
-import { extractFileCached } from './extract.js';
+import { extractFileCached, updateCachedMarkdown } from './extract.js';
+import { ocrPagesIntoMarkdown } from './ocr.js';
 
 const KEY_STORAGE = 'qm_openai_key';
 
@@ -104,6 +105,58 @@ async function kickExtraction(entry) {
     }
     renderFileList();
     updateControls();
+
+    // Auto-run OCR if a key is already configured.
+    if (entry.status === 'ready' && entry.ocrNeeded.length > 0 && getKey()) {
+        runOcr(entry);
+    }
+}
+
+async function runOcr(entry) {
+    if (!entry.ocrNeeded?.length) return;
+    const key = getKey();
+    if (!key) return;
+    entry.status = 'ocr';
+    entry.progress = { page: 0, total: entry.ocrNeeded.length };
+    renderFileList();
+    updateControls();
+    try {
+        const updated = await ocrPagesIntoMarkdown(
+            entry.file,
+            entry.markdown,
+            entry.ocrNeeded,
+            key,
+            {
+                onProgress: (done, total) => {
+                    entry.progress = { page: done, total };
+                    renderFileList();
+                },
+            },
+        );
+        entry.markdown = updated;
+        entry.ocrNeeded = [];
+        entry.status = 'ready';
+        delete entry.progress;
+        await updateCachedMarkdown(entry.hash, updated);
+    } catch (err) {
+        console.error('ocr failed', entry.file.name, err);
+        entry.status = 'error';
+        entry.error = err?.message || 'OCR failed';
+    }
+    renderFileList();
+    updateControls();
+}
+
+async function ensurePendingOcrRuns() {
+    const pending = state.files.filter(
+        f => f.status === 'ready' && f.ocrNeeded?.length > 0,
+    );
+    if (pending.length === 0) return true;
+    if (!(await ensureKey())) return false;
+    for (const entry of pending) {
+        await runOcr(entry);
+    }
+    return state.files.every(f => f.status === 'ready' && !f.ocrNeeded?.length);
 }
 
 function removeFile(id) {
@@ -131,9 +184,13 @@ function renderFileList() {
             label = f.progress
                 ? `extracting ${f.progress.page}/${f.progress.total}…`
                 : 'extracting…';
+        } else if (f.status === 'ocr') {
+            label = f.progress
+                ? `OCR ${f.progress.page}/${f.progress.total}…`
+                : 'OCR…';
         } else if (f.status === 'ready') {
             const ocrTag = f.ocrNeeded?.length
-                ? ` (OCR needed: ${f.ocrNeeded.length} pages)`
+                ? ` (${f.ocrNeeded.length} pages need OCR — runs on Generate)`
                 : '';
             label = `ready · ${f.numPages} pages${ocrTag}`;
         } else if (f.status === 'error') {
@@ -220,8 +277,14 @@ function wireGenerate() {
     const btn = document.getElementById('generateBtn');
     btn.addEventListener('click', async () => {
         clearStatus();
-        const ok = await ensureKey();
-        if (!ok) return;
+        if (!(await ensureKey())) return;
+        showStatus('Running OCR for any pages without a text layer…');
+        const ocrOk = await ensurePendingOcrRuns();
+        if (!ocrOk) {
+            showStatus('OCR failed for some files. Check the file list for errors.', 'error');
+            return;
+        }
+        clearStatus();
         showStatus('Generation will be wired up in the next step.');
     });
 }
