@@ -140,7 +140,10 @@ export function wireQuizControls({ onRegenerate, onBackToUpload }) {
     document.getElementById('flagBtn').addEventListener('click', flag);
 
     const regen = async () => {
-        if (onRegenerate) await onRegenerate();
+        if (!onRegenerate) return;
+        // Switch back to upload view so generation status is visible.
+        showUploadView();
+        await onRegenerate();
     };
     const back = () => {
         showUploadView();
