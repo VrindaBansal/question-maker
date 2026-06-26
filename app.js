@@ -1,6 +1,6 @@
 // Question Maker — main app
-// Step 1: scaffold + upload UI + key prompt.
-// Extraction, generation, quiz logic come in later steps.
+
+import { extractFileCached } from './extract.js';
 
 const KEY_STORAGE = 'qm_openai_key';
 
@@ -58,7 +58,7 @@ async function ensureKey() {
 // --- File handling ---
 
 const state = {
-    files: [],  // [{ id, file, status: 'pending'|'ready'|'error', error? }]
+    files: [],  // [{ id, file, status, hash?, markdown?, numPages?, ocrNeeded?, error?, progress? }]
 };
 
 function addFiles(fileList) {
@@ -70,11 +70,37 @@ function addFiles(fileList) {
         if (state.files.some(f => f.file.name === file.name && f.file.size === file.size)) {
             continue;
         }
-        state.files.push({
+        const entry = {
             id: crypto.randomUUID(),
             file,
-            status: 'pending',
+            status: 'extracting',
+        };
+        state.files.push(entry);
+        kickExtraction(entry);
+    }
+    renderFileList();
+    updateControls();
+}
+
+async function kickExtraction(entry) {
+    try {
+        const result = await extractFileCached(entry.file, {
+            onProgress: (page, total) => {
+                entry.progress = { page, total };
+                renderFileList();
+            },
         });
+        entry.hash = result.hash;
+        entry.markdown = result.markdown;
+        entry.numPages = result.numPages;
+        entry.ocrNeeded = result.ocrNeeded || [];
+        entry.cached = result.cached;
+        entry.status = 'ready';
+        delete entry.progress;
+    } catch (err) {
+        console.error('extract failed', entry.file.name, err);
+        entry.status = 'error';
+        entry.error = err?.message || 'extract failed';
     }
     renderFileList();
     updateControls();
@@ -100,11 +126,22 @@ function renderFileList() {
 
         const status = document.createElement('span');
         status.className = `file-status ${f.status}`;
-        status.textContent = {
-            pending: 'queued',
-            ready: 'ready',
-            error: f.error || 'error',
-        }[f.status];
+        let label;
+        if (f.status === 'extracting') {
+            label = f.progress
+                ? `extracting ${f.progress.page}/${f.progress.total}…`
+                : 'extracting…';
+        } else if (f.status === 'ready') {
+            const ocrTag = f.ocrNeeded?.length
+                ? ` (OCR needed: ${f.ocrNeeded.length} pages)`
+                : '';
+            label = `ready · ${f.numPages} pages${ocrTag}`;
+        } else if (f.status === 'error') {
+            label = f.error || 'error';
+        } else {
+            label = f.status;
+        }
+        status.textContent = label;
 
         const remove = document.createElement('button');
         remove.className = 'file-remove';
@@ -124,8 +161,6 @@ function updateControls() {
     const generateBtn = document.getElementById('generateBtn');
     if (state.files.length > 0) {
         controls.hidden = false;
-        // For step 1, button stays disabled until extraction lands in step 2.
-        // Once extraction is wired, this should enable when all files are 'ready'.
         const allReady = state.files.every(f => f.status === 'ready');
         generateBtn.disabled = !allReady;
     } else {
