@@ -271,12 +271,25 @@ function wireDropzone() {
     });
 }
 
+const DIFFICULTY_LABELS = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
+
 function wireSlider() {
     const slider = document.getElementById('lengthSlider');
     const value = document.getElementById('lengthValue');
     slider.addEventListener('input', () => {
         value.textContent = slider.value;
     });
+
+    const diff = document.getElementById('difficultySlider');
+    const diffValue = document.getElementById('difficultyValue');
+    diff.addEventListener('input', () => {
+        diffValue.textContent = DIFFICULTY_LABELS[diff.value] || 'Medium';
+    });
+}
+
+function readDifficulty() {
+    const v = parseInt(document.getElementById('difficultySlider').value, 10);
+    return { 1: 'easy', 2: 'medium', 3: 'hard' }[v] || 'medium';
 }
 
 function wireGenerate() {
@@ -296,6 +309,7 @@ function wireGenerate() {
 
 async function runGeneration({ resetHistory = false } = {}) {
     const n = parseInt(document.getElementById('lengthSlider').value, 10) || 10;
+    const difficulty = readDifficulty();
     const apiKey = getKey();
     const sourceMarkdown = combineMarkdowns(state.files);
 
@@ -308,6 +322,7 @@ async function runGeneration({ resetHistory = false } = {}) {
 
     try {
         const result = await generateQuiz(sourceMarkdown, n, apiKey, {
+            difficulty,
             excludeChunkIds: state.history.excludeChunkIds,
             previousStems: [...state.history.previousStems, ...state.history.flaggedStems],
             onProgress: (done, total, info) => {
