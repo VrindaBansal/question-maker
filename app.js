@@ -2,6 +2,7 @@
 
 import { extractFileCached, updateCachedMarkdown } from './extract.js';
 import { ocrPagesIntoMarkdown } from './ocr.js';
+import { combineMarkdowns, generateQuiz } from './generate.js';
 
 const KEY_STORAGE = 'qm_openai_key';
 
@@ -60,6 +61,8 @@ async function ensureKey() {
 
 const state = {
     files: [],  // [{ id, file, status, hash?, markdown?, numPages?, ocrNeeded?, error?, progress? }]
+    quiz: null, // { questions, chunksUsed, sourceMarkdown }
+    history: { previousStems: [], excludeChunkIds: [], flaggedStems: [] },
 };
 
 function addFiles(fileList) {
@@ -284,9 +287,57 @@ function wireGenerate() {
             showStatus('OCR failed for some files. Check the file list for errors.', 'error');
             return;
         }
-        clearStatus();
-        showStatus('Generation will be wired up in the next step.');
+        await runGeneration({ resetHistory: true });
     });
+}
+
+async function runGeneration({ resetHistory = false } = {}) {
+    const n = parseInt(document.getElementById('lengthSlider').value, 10) || 10;
+    const apiKey = getKey();
+    const sourceMarkdown = combineMarkdowns(state.files);
+
+    if (resetHistory) {
+        state.history = { previousStems: [], excludeChunkIds: [], flaggedStems: [] };
+    }
+
+    showStatus(`Generating ${n} questions…`);
+    document.getElementById('generateBtn').disabled = true;
+
+    try {
+        const result = await generateQuiz(sourceMarkdown, n, apiKey, {
+            excludeChunkIds: state.history.excludeChunkIds,
+            previousStems: [...state.history.previousStems, ...state.history.flaggedStems],
+            onProgress: (done, total) => {
+                showStatus(`Generated ${done}/${total} questions…`);
+            },
+        });
+        if (result.questions.length === 0) {
+            showStatus('No grounded questions could be generated from the uploaded material.', 'error');
+            document.getElementById('generateBtn').disabled = false;
+            return;
+        }
+        state.quiz = {
+            questions: result.questions,
+            chunksUsed: result.chunksUsed,
+            sourceMarkdown,
+        };
+        state.history.excludeChunkIds = [
+            ...new Set([...state.history.excludeChunkIds, ...result.chunksUsed]),
+        ];
+        state.history.previousStems = [
+            ...state.history.previousStems,
+            ...result.questions.map(q => q.question),
+        ];
+        clearStatus();
+        // Quiz UI rendering is wired in step 5. For now stash and log.
+        console.log('quiz ready', state.quiz);
+        showStatus(`Generated ${result.questions.length} questions. Quiz UI lands next.`);
+    } catch (err) {
+        console.error('generate failed', err);
+        showStatus(err?.message || 'generation failed', 'error');
+    } finally {
+        document.getElementById('generateBtn').disabled = false;
+    }
 }
 
 function init() {
