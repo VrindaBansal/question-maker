@@ -2,8 +2,9 @@
 // verify the correct answer is grounded in the source passage.
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-const GEN_MODEL = 'gpt-4o-mini';
+const GEN_MODEL = 'gpt-4o';
 const CHUNK_TARGET_CHARS = 3500;
+const MAX_PASSES = 4;
 
 export function combineMarkdowns(files) {
     return files
@@ -67,8 +68,13 @@ REQUIREMENTS:
 - "tricky": boolean. About 10% of questions should be true — these should have plausible-but-wrong distractors that test careful reading. The other 90% should be straightforward.
 - The correct answer's key phrase MUST appear in the passage (verbatim or as a close paraphrase).
 - Wrong options must be plausible but UNSUPPORTED by the passage. No obvious nonsense.
-- Vary forms: definitions, cause/effect, identification, sequence, comparison.
-- Do not invent facts. If the passage is too thin for ${n} questions, return fewer.${avoid}
+- Vary forms: definitions, cause/effect, identification, sequence, comparison, numbers/dates/names.
+- Do not invent facts.
+
+IMPORTANT: Aim to produce exactly ${n} questions. Most passages contain
+many testable facts — names, numbers, dates, definitions, relationships,
+sequences, locations, attributes. Find varied angles. Only return fewer
+if the passage is genuinely too sparse (e.g. one sentence).${avoid}
 
 Return JSON of the form: {"questions": [{"question": "...", "options": ["a","b","c","d"], "correct": 0, "explanation": "...", "tricky": false}]}`;
 }
@@ -132,41 +138,62 @@ function shuffled(arr) {
     return a;
 }
 
+function normalizeStem(s) {
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
 export async function generateQuiz(markdown, n, apiKey, options = {}) {
     const { excludeChunkIds = [], previousStems = [], onProgress } = options;
-    let chunks = chunkMarkdown(markdown);
-    const totalChunks = chunks.length;
-    let pool = chunks.filter(c => !excludeChunkIds.includes(c.id));
-    if (pool.length === 0) pool = chunks;  // recycle when exhausted
-
-    pool = shuffled(pool);
-    const target = Math.ceil(n * 1.25);
-    const perChunk = Math.max(2, Math.ceil(target / pool.length));
+    const allChunks = chunkMarkdown(markdown);
+    const totalChunks = allChunks.length;
+    let pool = allChunks.filter(c => !excludeChunkIds.includes(c.id));
+    if (pool.length === 0) pool = allChunks;  // recycle when exhausted
 
     const questions = [];
-    const chunksUsed = [];
+    const seenStems = new Set(previousStems.map(normalizeStem));
+    const chunksUsed = new Set();
 
-    for (const chunk of pool) {
-        if (questions.length >= n) break;
+    for (let pass = 0; pass < MAX_PASSES && questions.length < n; pass++) {
+        const passPool = shuffled(pool);
         const remaining = n - questions.length;
-        const ask = Math.min(perChunk, Math.max(2, remaining + 2));
-        try {
-            const batch = await generateFromChunk(
-                chunk,
-                ask,
-                apiKey,
-                [...previousStems, ...questions.map(q => q.question)],
-            );
-            if (batch.length > 0) chunksUsed.push(chunk.id);
-            for (const q of batch) {
-                if (questions.length >= n) break;
-                questions.push(q);
+        // Later passes pull additional, different questions from the same
+        // material — the avoid list keeps them from repeating.
+        const perChunkBase = Math.ceil(remaining / passPool.length);
+        const perChunk = Math.max(2, perChunkBase + (pass === 0 ? 1 : 2));
+
+        for (const chunk of passPool) {
+            if (questions.length >= n) break;
+            const need = n - questions.length;
+            const ask = Math.min(perChunk, need + 3);
+            try {
+                const batch = await generateFromChunk(
+                    chunk,
+                    ask,
+                    apiKey,
+                    [...previousStems, ...questions.map(q => q.question)],
+                );
+                let added = 0;
+                for (const q of batch) {
+                    if (questions.length >= n) break;
+                    const key = normalizeStem(q.question);
+                    if (seenStems.has(key)) continue;
+                    seenStems.add(key);
+                    questions.push(q);
+                    added++;
+                }
+                if (added > 0) chunksUsed.add(chunk.id);
+            } catch (err) {
+                console.error('chunk gen failed', chunk.id, err);
             }
-        } catch (err) {
-            console.error('chunk gen failed', chunk.id, err);
+            if (onProgress) onProgress(questions.length, n, { pass: pass + 1 });
         }
-        if (onProgress) onProgress(questions.length, n);
     }
 
-    return { questions: questions.slice(0, n), chunksUsed, totalChunks };
+    return {
+        questions: questions.slice(0, n),
+        chunksUsed: [...chunksUsed],
+        totalChunks,
+        requested: n,
+        shortfall: questions.length < n,
+    };
 }

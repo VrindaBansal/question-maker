@@ -310,14 +310,27 @@ async function runGeneration({ resetHistory = false } = {}) {
         const result = await generateQuiz(sourceMarkdown, n, apiKey, {
             excludeChunkIds: state.history.excludeChunkIds,
             previousStems: [...state.history.previousStems, ...state.history.flaggedStems],
-            onProgress: (done, total) => {
-                showStatus(`Generated ${done}/${total} questions…`);
+            onProgress: (done, total, info) => {
+                const passTag = info?.pass > 1 ? ` (pass ${info.pass})` : '';
+                showStatus(`Generated ${done}/${total} questions${passTag}…`);
             },
         });
         if (result.questions.length === 0) {
             showStatus('No grounded questions could be generated from the uploaded material.', 'error');
             document.getElementById('generateBtn').disabled = false;
             return;
+        }
+        if (result.shortfall) {
+            const proceed = window.confirm(
+                `Could only generate ${result.questions.length} grounded questions ` +
+                `from the uploaded material (you asked for ${n}). ` +
+                `Proceed with ${result.questions.length}?`,
+            );
+            if (!proceed) {
+                clearStatus();
+                document.getElementById('generateBtn').disabled = false;
+                return;
+            }
         }
         state.quiz = {
             questions: result.questions,
