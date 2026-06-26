@@ -55,7 +55,9 @@ function promptForKey() {
 
 async function ensureKey() {
     if (getKey()) return true;
-    return await promptForKey();
+    const ok = await promptForKey();
+    if (ok) updateKeyIndicator();
+    return ok;
 }
 
 // --- File handling ---
@@ -351,10 +353,32 @@ async function runGeneration({ resetHistory = false } = {}) {
     }
 }
 
+function updateKeyIndicator() {
+    const indicator = document.getElementById('keyIndicator');
+    const key = getKey();
+    if (key) {
+        const tail = key.slice(-4);
+        indicator.textContent = `API key set (…${tail})`;
+        indicator.style.color = '#28a745';
+    } else {
+        indicator.textContent = 'No API key set — required to generate';
+        indicator.style.color = '#b8860b';
+    }
+}
+
+function wireKeyBar() {
+    document.getElementById('changeKeyBtn').addEventListener('click', async () => {
+        await promptForKey();
+        updateKeyIndicator();
+    });
+    updateKeyIndicator();
+}
+
 function init() {
     wireDropzone();
     wireSlider();
     wireGenerate();
+    wireKeyBar();
     wireQuizControls({
         onRegenerate: () => runGeneration({ resetHistory: false }),
         onBackToUpload: () => { state.quiz = null; },
