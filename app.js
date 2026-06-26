@@ -3,6 +3,7 @@
 import { extractFileCached, updateCachedMarkdown } from './extract.js';
 import { ocrPagesIntoMarkdown } from './ocr.js';
 import { combineMarkdowns, generateQuiz } from './generate.js';
+import { startQuiz, wireQuizControls } from './quiz.js';
 
 const KEY_STORAGE = 'qm_openai_key';
 
@@ -329,9 +330,19 @@ async function runGeneration({ resetHistory = false } = {}) {
             ...result.questions.map(q => q.question),
         ];
         clearStatus();
-        // Quiz UI rendering is wired in step 5. For now stash and log.
-        console.log('quiz ready', state.quiz);
-        showStatus(`Generated ${result.questions.length} questions. Quiz UI lands next.`);
+        startQuiz(result.questions, {
+            onFlag: (q, flagged) => {
+                if (flagged) {
+                    state.history.flaggedStems = [
+                        ...new Set([...state.history.flaggedStems, q.question]),
+                    ];
+                } else {
+                    state.history.flaggedStems = state.history.flaggedStems.filter(
+                        s => s !== q.question,
+                    );
+                }
+            },
+        });
     } catch (err) {
         console.error('generate failed', err);
         showStatus(err?.message || 'generation failed', 'error');
@@ -344,6 +355,10 @@ function init() {
     wireDropzone();
     wireSlider();
     wireGenerate();
+    wireQuizControls({
+        onRegenerate: () => runGeneration({ resetHistory: false }),
+        onBackToUpload: () => { state.quiz = null; },
+    });
 }
 
 document.addEventListener('DOMContentLoaded', init);
